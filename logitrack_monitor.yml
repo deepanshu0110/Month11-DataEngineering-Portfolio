@@ -1,0 +1,39 @@
+
+name: LogiTrack Monitoring Pipeline
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # daily at 06:00 UTC
+  workflow_dispatch:       # manual trigger
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pandas numpy boto3 moto jupyter nbconvert
+
+      - name: Convert notebook to Python script
+        run: jupyter nbconvert --to script Day190_Capstone_Part2_Monitoring.ipynb
+
+      - name: Run pipeline (from generated .py)
+        run: python Day190_Capstone_Part2_Monitoring.py
+
+      - name: Run test gate
+        run: python test_gate.py
+
+      - name: Upload run summary artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-summary
+          path: capstone_raw/run_summary.json
